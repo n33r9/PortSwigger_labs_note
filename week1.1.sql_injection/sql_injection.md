@@ -35,7 +35,7 @@ statement.setString(1, input);
 ResultSet resultSet = statement.executeQuery();
 ```
 
-
+[SQL injection cheat sheet](https://portswigger.net/web-security/sql-injection/cheat-sheet)
 
 ## Apprentice 
 
@@ -64,7 +64,7 @@ Method 2: Modify the `password` parameter to the value: `'or 1=1 --`
 
 ![image-20250522144400231](./image/image-20250522144400231.png)
 
-### Lab 3: 
+
 
 ## Practitioner
 
@@ -107,3 +107,40 @@ Copy its output, and sned in tab repeater:
 Log in as admin:
 
 ![image-20250522172342161](./image/image-20250522172342161.png)
+
+### [Lab 2: SQL injection UNION attack, determining the number of columns returned by the query](https://portswigger.net/web-security/sql-injection/union-attacks/lab-determine-number-of-columns)
+
+Determine the number of columns that are being returned by the query :
+
+![image-20250524154940595](./image/image-20250524154940595.png)
+
+Try to add more null values until the server error disappears & the result include `null` value:
+
+![image-20250524155300270](./image/image-20250524155300270.png)
+
+### [Lab 3: SQL injection attack, querying the database type and version on Oracle](https://portswigger.net/web-security/sql-injection/examining-the-database/lab-querying-database-version-oracle)
+
+- Determine the number of columns that are being returned by the query and which columns contain text data:
+
+  ```http
+  GET /filter?category=Gifts'+union+select+'n33r9','n33r99'+from+dual-- 
+  ```
+
+![image-20250524150555287](./image/image-20250524150555287.png)
+
+=> you see that both 2 columns return text data (if I query 1 column, it returns server error).  
+
+Search for the query to retrieve the database version from the [cheatsheet](https://portswigger.net/web-security/sql-injection/cheat-sheet), to craft the sqli payload as follow: 
+
+```sql
+'+UNION+SELECT+BANNER,+NULL+FROM+v$version--
+```
+
+![image-20250524152518169](./image/image-20250524152518169.png)
+
+### [Lab 4: SQL injection attack, querying the database type and version on MySQL and Microsoft](https://portswigger.net/web-security/sql-injection/examining-the-database/lab-querying-database-version-mysql-microsoft)
+
+
+
+
+
