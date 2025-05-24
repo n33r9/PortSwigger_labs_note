@@ -1,11 +1,3 @@
-Các nội dung của tuần này nhé mn:
-- SQL Injection
-- XSS
-- CSRF
-- JWT attack
-Out put là hoàn thành các labs mức APPRENTICE, PRACTITIONER.
-Mỗi dạng này cần có report về nguyên nhân, tác động, phân loại của lỗ hổng, các payload tấn công phổ biến, khuyến nghị cách khắc phục.
-
 # [SQLi](https://portswigger.net/web-security/sql-injection)
 
 Causes: 
