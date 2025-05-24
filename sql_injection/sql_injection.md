@@ -54,13 +54,13 @@ ResultSet resultSet = statement.executeQuery();
 
 https://0a32007d0320a7ec817f2f18001e0033.web-security-academy.net/filter?category=Accessories%27+or+1=1--
 
-![image-20250522120204449](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522120204449.png)
+![image-20250522120204449](./image/image-20250522120204449.png)
 
-![image-20250522104646704](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522104646704.png)
+![image-20250522104646704](./image/image-20250522104646704.png)
 
 ### Lab 2: [SQL injection vulnerability allowing login bypass](https://portswigger.net/web-security/sql-injection/lab-login-bypass)
 
-![image-20250522142009708](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522142009708.png)
+![image-20250522142009708](./image/image-20250522142009708.png)
 
 Method 1: Modify the `username` parameter, giving it the value: `administrator'--`
 
@@ -68,9 +68,9 @@ Method 2: Modify the `password` parameter to the value: `'or 1=1 --`
 
 ==> login successfully as `administrator`
 
-![image-20250522143817787](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522143817787.png)
+![image-20250522143817787](./image/image-20250522143817787.png)
 
-![image-20250522144400231](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522144400231.png)
+![image-20250522144400231](./image/image-20250522144400231.png)
 
 ### Lab 3: 
 
@@ -86,19 +86,19 @@ Take input from
 
 Step 1: Observation
 
-![image-20250522160951565](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522160951565.png)
+![image-20250522160951565](./image/image-20250522160951565.png)
 
 - Stock check feature: sends `productId` and `storeId`in XML format
 
 - Send request to tab repeater, try `storeId` with `1+1` or `1 union select null` and observe the result
 
-- ![image-20250522170206674](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522170206674.png)
+- ![image-20250522170206674](./image/image-20250522170206674.png)
 
-  ![image-20250522162738081](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522162738081.png)
+  ![image-20250522162738081](./image/image-20250522162738081.png)
 
   => attack detected
 
-  ![image-20250522162816589](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522162816589.png)
+  ![image-20250522162816589](./image/image-20250522162816589.png)
 
 Step 2: Bypass the WAF 
 
@@ -110,8 +110,8 @@ Encode > dec_entities/hex_entities
 
 Copy its output, and sned in tab repeater:
 
-![image-20250522170438253](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522170438253.png)
+![image-20250522170438253](./image/image-20250522170438253.png)
 
 Log in as admin:
 
-![image-20250522172342161](C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250522172342161.png)
+![image-20250522172342161](./image/image-20250522172342161.png)
