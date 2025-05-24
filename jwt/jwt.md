@@ -2,7 +2,7 @@
 
 About JWT:
 
-<img src="C:\Users\n33r9\AppData\Roaming\Typora\typora-user-images\image-20250524112213349.png" alt="image-20250524112213349" style="zoom:67%;" />
+![image-20250524112213349](./image/image-20250524112213349.png)
 
 ![image-20250524112240677](./image/image-20250524112240677.png)
 
