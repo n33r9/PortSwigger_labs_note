@@ -26,6 +26,10 @@ Prevention:
 - Implement anti-CSRF tokens in state-changing requests.
 - Verify the origin or Referer headers server-side.
 
+XSS vs CSRF:
+
+- 
+
 Common Payloads through Labs Completion:
 
 ## - Apprentice
