@@ -365,3 +365,7 @@ We can target this parameter with the Director of Directory Traversal, causing t
 ![image-20250531191245611](./image/image-20250531191245611.png)
 
 => To address the JWT authentication bypass vulnerability, ensure that the `kid` header is properly validated and sanitized to prevent path traversal attacks. Implement rigorous checks to prevent unauthorized key access and avoid using /dev/null or null bytes within the kid header to maintain robust authentication mechanisms.
+
+
+
+Note meeting: https://github.com/mohemiv/dodgypass 
