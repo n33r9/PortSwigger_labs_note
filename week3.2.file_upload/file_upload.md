@@ -131,8 +131,91 @@ H file exploit.php được up lên và nằm ở thư mục /files/, chỉnh s�
 
 Lab des: 
 
+- Lab có một tính năng **upload ảnh đại diện (avatar)**.
 
+- **Một số đuôi file (extensions)** như `.php` bị **blacklist** nên không thể upload file chứa mã độc trực tiếp.
+
+  ![image-20250606000234083](./image/image-20250606000234083.png)
+
+- Tuy nhiên, **blacklist này có lỗi**, cho phép ta **bypass bảo mật** để upload và thực thi một **web shell PHP**.
 
 
 
 Steps: 
+
+- File `.htaccess` là một **tập tin cấu hình** đặc biệt được sử dụng bởi máy chủ web **Apache**, cho phép **tùy chỉnh cách hoạt động của máy chủ web** đối với thư mục nơi file `.htaccess` được đặt (và các thư mục con nếu không bị ghi đè). Chỉnh sửa req để upload file .htaccess có nội dung như sau:
+
+![image-20250606001118803](./image/image-20250606001118803.png)
+
+=> cho phép xử lý (thực thi) file .l33t như file php:
+
+![image-20250606001630356](./image/image-20250606001630356.png)
+
+=> gửi request để thực thi file l33t đã up lên
+
+![image-20250606001656332](./image/image-20250606001656332.png)
+
+=> get secret
+
+`YDERjrbgsw1GF2NwTe7lEYP7asNJE8KG`
+
+![image-20250606001738344](./image/image-20250606001738344.png)
+
+
+
+### [Lab 3: Web shell upload via obfuscated file extension](https://portswigger.net/web-security/file-upload/lab-file-upload-web-shell-upload-via-obfuscated-file-extension)
+
+
+
+lab des: 
+
+Trang web có chức năng tải ảnh đại diện (avatar), nhưng có **blacklist** các phần mở rộng tệp (ví dụ: `.php`). Tuy nhiên, có thể **vượt qua bằng kỹ thuật null byte injection**
+
+![image-20250607042857708](./image/image-20250607042857708.png)
+
+steps: 
+
+- capture POST /my-account/avatar và chỉnh sửa req: 
+
+  ![image-20250607043223287](./image/image-20250607043223287.png)
+
+  => response:
+
+  ![image-20250607043301131](./image/image-20250607043301131.png)
+
+  ![image-20250607043537502](./image/image-20250607043537502.png)
+
+`GET /files/avatars/exploit.php HTTP/2`
+
+![image-20250607043748139](./image/image-20250607043748139.png)
+
+`exploit.php%00.jpg` sẽ được các trình xử lý chuỗi hiểu `exploit.php` và bypass được blacklist extension.
+
+`NnXwRJSLOK96YTkicLSlprBQFVQoiHS7`
+
+![image-20250607043953263](./image/image-20250607043953263.png)
+
+
+
+### [Lab 4: Remote code execution via polyglot web shell upload](https://portswigger.net/web-security/file-upload/lab-file-upload-remote-code-execution-via-polyglot-web-shell-upload)
+
+Lab des: 
+
+Ứng dụng web có chức năng tải ảnh đại diện (avatar), và có **kiểm tra nội dung tệp** để xác định có phải ảnh thật không (dựa trên định dạng và metadata).
+
+![image-20250607045630433](./image/image-20250607045630433.png)
+
+=> Tải một file **JPG/PHP polyglot** lên máy chủ để thực thi PHP code, từ đó **đọc nội dung file `/home/carlos/secret`**.
+
+Steps: 
+
+- Tạo file polyglot = `exiftool`
+
+  ![image-20250607050223008](./image/image-20250607050223008.png)
+
+  ![image-20250607051931162](./image/image-20250607051931162.png)
+
+- Up file polyglot lên server và tìm chuỗi secret trả về: 
+
+
+
