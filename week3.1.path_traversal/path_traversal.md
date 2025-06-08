@@ -1,24 +1,87 @@
-Causes: 
 
-Impact:
-
-Categories: 
-
-Prevention: 
-
-Common Payload:
 
 # Path Traversal (6 labs)
 
-Causes: 
+**Định nghĩa:** **Path Traversal** (còn gọi là **Directory Traversal**) là lỗ hổng xảy ra khi ứng dụng cho phép người dùng kiểm soát đường dẫn tệp (file path), và không lọc đầu vào cẩn thận, cho phép attacker truy cập hoặc đọc các file **ngoài phạm vi dự kiến** trên máy chủ.
 
-Impact:
+Ví dụ:
 
-Categories: 
+```
+GET /?file=../../../../etc/passwd
+```
 
-Prevention: 
+→ Truy cập file chứa danh sách người dùng hệ thống Linux.
+
+**Nguyên nhân:** 
+
+- Nối trực tiếp input người dùng vào đường dẫn: Không lọc `..` hoặc ký tự `/`
+- Thiếu kiểm tra whitelist tên file: Cho phép người dùng chọn file tùy ý
+- Không chuẩn hóa đường dẫn: Dễ bị bypass bằng encoding
+- Phụ thuộc vào blacklist đơn giản: `..`, `%2e`, `%252e`, v.v. có thể bypass
+
+**Tác động:**
+
+- Rò rỉ thông tin: Đọc file cấu hình (.env, config.php)
+
+  VD: Nếu ứng dụng nối trực tiếp giá trị người dùng cung cấp với đường dẫn:
+
+  ```php
+  include("pages/" . $_GET['page'] . ".php");
+  ```
+
+  - Input: `../../../../etc/passwd%00`
+  - Output: `/pages/../../../../etc/passwd` (→ thành `/etc/passwd`)
+
+  => Nếu không kiểm soát kỹ, attacker có thể đọc toàn bộ hệ thống tệp.
+
+- Lộ thông tin nhạy cảm: Credentials database, secret tokens
+
+- Xem mã nguồn: Tìm lỗi logic, backdoor
+
+- Kết hợp với file upload → RCE: Đọc và chạy file PHP upload
+
+**Kỹ thuật khai thác:**
+
+1. **URL-encoding**
+   - `%2e` = `.`, `%2f` = `/`
+   - `..%2f..%2fetc/passwd`
+2. **Double encoding**
+   - `%252e` → `%25` = `%`, `%2e` = `.`
+   - Trình decode sẽ biến `%252e` thành `%2e`, rồi thành `.`
+3. **Dot bypass**
+   - `....//....//etc/passwd`
+   - Vượt qua kiểm tra đơn giản `strpos(“..”)`
+4. **Null byte injection (cũ)**
+   - `../../etc/passwd%00.jpg`
+   - Giúp cắt phần mở rộng giả như `.jpg` trên hệ thống C-based
+
+**Phòng tránh:** 
+
+- Không cho người dùng nhập đường dẫn trực tiếp: Dùng ID hoặc map cố định
+  - `$filename = getFileFromId($_GET['id']);`
+- Chuẩn hóa và kiểm tra đường dẫn: Dùng realpath() để chắc chắn file nằm trong thư mục cho phép
+- Chặn `..`, `/`, `\` và các biến thể encode: Phát hiện traversal từ sớm
+- Phân quyền file hệ thống đúng: Không cho app user đọc file hệ thống hoặc private file
+
+Ví dụ kiểm tra chuẩn hóa đường dẫn trong PHP:
+
+```php
+phpCopy code$base = realpath("files/");
+$target = realpath("files/" . $_GET['file']);
+
+if (strpos($target, $base) !== 0) {
+    die("Access denied!");
+}
+```
 
 Common Payload:
+
+- Truy cập `/etc/passwd`: `../../../../etc/passwd`
+- Truy cập file hiện tại: `./config.php`
+- Directory traversal encoded: `%2e%2e/%2e%2e/%2e%2e/etc/passwd`
+- Windows traversal: `..\\..\\..\\boot.ini`
+- Bypass filter bằng `.`: `....//....//etc/passwd`
+- Double URL encode: `%252e%252e%252fetc/passwd`
 
 ## Apprentice 
 
