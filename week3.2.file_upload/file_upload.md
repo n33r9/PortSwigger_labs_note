@@ -1,12 +1,116 @@
 # File Upload (6 labs)
 
-Causes: 
+ĐỊnh nghĩa: chức năng upload không kiểm tra kỹ tên, nội dung, định dạng hoặc kích thước của file, từ một việc đơn giản như upload ảnh cũng có thể dẫn đến:
 
-Impact:
+- Tải lên và thực thi mã độc (web shell).
+- Ghi đè file nhạy cảm.
+- Lấp đầy ổ đĩa (tấn công DoS) 
 
-Categories: 
+Nguyên nhân: lỗ hổng xảy ra khi ứng dụng cho phép người dùng tải file lên mà không kiểm soát chặt về:
+
+- Định dạng (extension)
+- Loại nội dung (MIME type)
+- Vị trí lưu trữ file
+- Quyền thực thi của file
+
+Tác động: Nếu file độc hại được thực thi trên server, attacker có thể:
+
+- Đọc / ghi file
+- Chạy lệnh hệ thống
+- Chiếm toàn bộ quyền điều khiển máy chủ
+
+Kỹ thuật khai thác phổ biến: 
+
+1. **Unrestricted File Upload**
+
+Cho upload file `.php` bình thường, nội dung chứa shell:
+
+```php+HTML
+<?php echo system($_GET['cmd']); ?>
+```
+
+→ Truy cập URL file để thực thi lệnh.
+
+------
+
+2. **Extension blacklist bypass**
+
+Server cấm `.php`, nhưng không cấm `.php5`, `.pHp`, `.asp;.jpg`
+ → Upload file với đuôi lạ mà server vẫn thực thi được.
+
+Vì Apache/nginx có thể cấu hình thực thi nhiều phần mở rộng liên quan đến PHP.
+
+------
+
+3. **Null byte injection**
+
+Đổi tên file:
+
+```
+exploit.php%00.jpg
+```
+
+→ `%00` là ký tự kết thúc chuỗi trong C, khiến hệ thống chỉ thấy `.php`
+
+Một số ngôn ngữ back-end bị ảnh hưởng nếu dùng C-style string handling.
+
+------
+
+### 4. **Content-Type or Magic Bytes Bypass**
+
+- Khai báo `Content-Type: image/jpeg`, nhưng thực tế là file PHP.
+- Hoặc dùng đầu file chứa magic bytes đúng của ảnh `.jpg`, phần sau là mã PHP.
+
+**Phân tích**: Server chỉ kiểm tra sơ sài loại file dựa trên header hoặc magic bytes.
+
+------
+
+5. **.htaccess override**
+
+Upload `.htaccess` chứa:
+
+```bash
+AddType application/x-httpd-php .l33t
+```
+
+→ Server sẽ xử lý `.l33t` như PHP → Upload file `exploit.l33t`
+
+Apache cho phép gán MIME mới theo extension nếu `.htaccess` được phép.
+
+------
+
+6. **Polyglot file**
+
+Dùng `ExifTool` chèn mã PHP vào ảnh thật:
+
+```cmd
+exiftool -Comment="<?php ... ?>" photo.jpg -o shell.php
+```
+
+→ Server thấy là ảnh, nhưng khi truy cập shell.php thì mã PHP được thực thi.
+
+------
+
+7. **Path Traversal**
+
+Đổi tên file thành:
+
+```
+filename="../shell.php"
+```
+
+→ File ghi ra thư mục cha (`/files/`), nơi có thể truy cập được từ URL.
+
+Nếu server không kiểm tra và lọc `../`, attacker có thể điều khiển vị trí lưu file.
 
 Prevention: 
+
+- Whitelist đuôi file an toàn (chỉ cho phép `.jpg`, `.png`, v.v.).
+- Kiểm tra nội dung file thực sự (magic bytes), không chỉ MIME hay đuôi.
+- Đổi tên file thành ngẫu nhiên, không dùng tên người dùng upload.
+- Lưu file vào thư mục không thực thi được (no-execute).
+- Cấm .htaccess hoặc vô hiệu hóa override trong cấu hình Apache.
+- Giới hạn kích thước file, loại bỏ metadata độc hại.
 
 Common Payload:
 
