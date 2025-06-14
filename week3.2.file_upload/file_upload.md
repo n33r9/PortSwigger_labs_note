@@ -1,9 +1,9 @@
 # File Upload (6 labs)
 
-ĐỊnh nghĩa: chức năng upload không kiểm tra kỹ tên, nội dung, định dạng hoặc kích thước của file, từ một việc đơn giản như upload ảnh cũng có thể dẫn đến:
+Định nghĩa: chức năng upload không kiểm tra kỹ tên, nội dung, định dạng hoặc kích thước của file, từ một chức năng đơn giản như upload ảnh cũng có thể dẫn đến:
 
-- Tải lên và thực thi mã độc (web shell).
-- Ghi đè file nhạy cảm.
+- Tải lên và thực thi mã độc (webshell).
+- Ghi đè file quan trọng của hệ thống.
 - Lấp đầy ổ đĩa (tấn công DoS) 
 
 Nguyên nhân: lỗ hổng xảy ra khi ứng dụng cho phép người dùng tải file lên mà không kiểm soát chặt về:
@@ -321,5 +321,9 @@ Steps:
 
 - Up file polyglot lên server và tìm chuỗi secret trả về: 
 
+![image-20250612132227428](./image/image-20250612132227428.png)
 
+![image-20250612132708830](./image/image-20250612132708830.png)
+
+![image-20250612132739726](./image/image-20250612132739726.png)
 
