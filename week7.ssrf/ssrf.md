@@ -50,12 +50,18 @@ Nếu SSRF kết hợp với command injection hoặc template injection, có th
 **Cách phòng tránh:** 
 
 1. Không bao giờ trust URL do người dùng cung cấp (kể cả từ client hoặc API khác).
+
 2. Nếu bắt buộc phải fetch URL từ đầu vào:
-3. - Duyệt whitelist domain rõ ràng và kiểm tra nghiêm ngặt (không chỉ kiểm tra chuỗi `localhost`).
+
+   - Duyệt whitelist domain rõ ràng và kiểm tra nghiêm ngặt (không chỉ kiểm tra chuỗi `localhost`).
+
    - Resolve DNS rồi kiểm tra IP có nằm trong dải private/internal không.
    - Chặn địa chỉ IP nội bộ, loopback (127.0.0.1), metadata IP (169.254.169.254), short IP (e.g. `2130706433` = `127.0.0.1`).
-4. Chặn `Redirect`, `URL encoding`, `double encoding`, IP integer.
-5. Thực hiện request từ môi trường cách ly (sandboxed) không có quyền truy cập nội bộ.
+
+3. Chặn `Redirect`, `URL encoding`, `double encoding`, IP integer.
+
+4. Thực hiện request từ môi trường cách ly (sandboxed) không có quyền truy cập nội bộ.
+
 6. Kiểm tra log request bất thường và dùng WAF chặn truy vấn SSRF điển hình.
 
 **Common Payload:**
@@ -215,7 +221,7 @@ Tuy nhiên, ứng dụng bị lỗ hổng open redirect, cho phép chuyển hư�
 **Steps:** 
 
 - Thử sửa Stockapi `http://localhost/admin`=> bị chặn
-- request next product, cho phép chuyển hướng url, t thử payload: `/product/nextProduct?path=http://192.168.0.1:8080/admin`
+- Request next product, cho phép chuyển hướng url, ta thử payload: `/product/nextProduct?path=http://192.168.0.1:8080/admin`
 
 ![image-20250719212142014](./image/image-20250719212142014.png)
 
